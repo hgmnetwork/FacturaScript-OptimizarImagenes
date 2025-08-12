@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+<h1>Optimizador de Imágenes</h1>
+<form method="post">
+    <div class="form-group">
+        <label for="maxWidth">Ancho máximo:</label>
+        <input type="number" name="maxWidth" class="form-control">
+    </div>
+    <div class="form-group">
+        <label for="maxHeight">Alto máximo:</label>
+        <input type="number" name="maxHeight" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">Optimizar Imágenes</button>
+</form>
+{% endblock %}

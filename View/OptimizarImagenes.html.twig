@@ -1,0 +1,210 @@
+{#
+* Copyright (C) 2024 HGM Network - www.hgmnetwork.com
+#}
+
+{% extends "Master/MenuBghTemplate.html.twig" %}
+{% import 'Macro/Forms.html.twig' as forms %}
+
+{% block body %}
+<div class="container">
+
+    {% if fsc.debug is defined and fsc.debug %}
+        {{ fsc.debug|raw }}
+    {% endif %}
+
+    {% if fsc.mensajes is defined %}
+        {% for mensaje in fsc.mensajes %}
+            <div class="alert alert-{{ mensaje.type }} alert-dismissible fade show" role="alert">
+                {{ mensaje.text }}
+                
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <p class="text-muted">Optimiza las imágenes del directorio <strong>MyFiles</strong> de forma segura y automática.</p>
+
+    <p><strong>Librería activa:</strong> {{ fsc.libreriaActiva }}</p>
+    <p><strong>Última optimización:</strong> {{ fsc.ultimaFecha|default('Nunca') }}</p>
+
+    {% if fsc.resolucionSeleccionada is defined and fsc.resolucionSeleccionada != '0' %}
+        <p><strong>Resolución seleccionada:</strong> {{ fsc.resolucionSeleccionada }}</p>
+    {% endif %}
+    <p><strong>Calidad seleccionada:</strong> {{ fsc.calidadSeleccionada }}%</p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Imágenes Actuales</h5>
+            <p><strong>Imágenes:</strong> {{ fsc.infoMyFiles.count }}</p>
+            <p><strong>Tamaño total:</strong> {{ fsc.infoMyFiles.size }}</p>
+        </div>
+        <div class="col-md-6">
+            <h5>Imágenes Originales</h5>
+            <p><strong>Imágenes:</strong> {{ fsc.infoMaster.count }}</p>
+            <p><strong>Tamaño total:</strong> {{ fsc.infoMaster.size }}</p>
+        </div>
+    </div>
+
+    <hr>
+
+    <form id="form-optimizar" method="post" action="{{ fsc.url() }}">
+        {{ formToken() }}
+        <input type="hidden" name="action" value="optimizar">
+
+        <div class="d-flex align-items-end gap-2 mt-3 flex-wrap">
+            <div class="flex-grow-1 mb-2 mb-md-0">
+                <label for="resolucion" class="form-label mb-1">Tamaño máximo (se mantiene la proporción)</label>
+                <select name="resolucion" id="resolucion" class="form-select w-auto">
+                    <option value="0">No reducir el tamaño</option>
+                    <option value="1920">Tamaño máximo 1920 px</option>
+                    <option value="1600">Tamaño máximo 1600 px</option>
+                    <option value="1366">Tamaño máximo 1366 px</option>
+                    <option value="1280">Tamaño máximo 1280 px</option>
+                    <option value="1024">Tamaño máximo 1024 px</option>
+                    <option value="800">Tamaño máximo 800 px</option>
+                    <option value="600">Tamaño máximo 600 px</option>
+                </select>
+            </div>
+            
+            <div class="flex-grow-1 mb-2 mb-md-0">
+                <label for="calidad" class="form-label mb-1">Nivel de compresión</label>
+                <select name="calidad" id="calidad" class="form-select w-auto">
+                    {% for i in 65..100 %}
+                        {% if i % 5 == 0 %}
+                            <option value="{{ i }}" {% if fsc.calidadSeleccionada == i %}selected{% endif %}>{{ i }}%</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-optimizar">
+                <i class="fas fa-compress-alt me-2"></i> Optimizar imágenes ({{ fsc.totalImages }} en total)
+            </button>
+        </div>
+    </form>
+    
+    <div id="loading-optimizar-message" class="mt-3" style="display: none;">
+        <p class="text-info"><i class="fas fa-spinner fa-spin me-2"></i> Optimizando imágenes, por favor espere...</p>
+    </div>
+
+    <form id="form-restaurar" method="post" action="{{ fsc.url() }}" class="mt-3">
+        {{ formToken() }}
+        <input type="hidden" name="action" value="restaurar-imagenes">
+        <button type="submit" class="btn btn-warning" id="btn-restaurar">
+            <i class="fas fa-undo me-2"></i> Restaurar Imágenes
+        </button>
+    </form>
+    
+    <div id="loading-restaurar-message" class="mt-3" style="display: none;">
+        <p class="text-info"><i class="fas fa-spinner fa-spin me-2"></i> Restaurando imágenes, por favor espere...</p>
+    </div>
+
+    <hr>
+
+    <h5 class="mt-4">Logs de optimización</h5>
+
+    {% if fsc.logsDisponibles|length > 0 %}
+        <ul class="list-group">
+            {% for log in fsc.logsDisponibles %}
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-link text-start p-0" onclick="toggleLogContent('{{ loop.index }}', '{{ log.name|e('js') }}', '{{ formToken()|e('js') }}')">{{ log.date }} - {{ log.name }}</button>
+                        
+                        <div>
+                            <span class="badge bg-secondary me-2">{{ (log.size / 1024)|round(2) }} KB</span>
+                            <form method="post" action="{{ fsc.url() }}" style="display:inline">
+                                {{ formToken() }}
+                                <input type="hidden" name="action" value="borrar-log">
+                                <input type="hidden" name="log" value="{{ log.name }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div id="log-content-{{ loop.index }}" class="log-content mt-2" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Contenido del log: {{ log.name }}</strong>
+                            <button type="button" class="close" aria-label="Cerrar" onclick="closeLogContent('{{ loop.index }}')">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <pre id="log-pre-{{ loop.index }}" class="bg-light border p-2" style="white-space: pre-wrap;"></pre>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No hay registros de optimización aún.</p>
+    {% endif %}
+
+</div>
+
+<script>
+    document.getElementById('form-optimizar').addEventListener('submit', function(event) {
+        const total = {{ fsc.totalImages }};
+        const btn = document.getElementById('btn-optimizar');
+        const loadingMessage = document.getElementById('loading-optimizar-message');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Procesando...';
+        loadingMessage.style.display = 'block';
+        loadingMessage.querySelector('p').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Optimizando ' + total + ' imágenes, por favor espere...';
+    });
+
+    document.getElementById('form-restaurar').addEventListener('submit', function(event) {
+        if (!confirm('¿Está seguro de que desea restaurar las imágenes? Esto eliminará todas las imágenes actuales de MyFiles y las reemplazará con las originales.')) {
+            event.preventDefault();
+            return;
+        }
+
+        const btn = document.getElementById('btn-restaurar');
+        const loadingMessage = document.getElementById('loading-restaurar-message');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Procesando...';
+        loadingMessage.style.display = 'block';
+    });
+
+
+    function toggleLogContent(logIndex, logName, formToken) {
+        var logContent = document.getElementById('log-content-' + logIndex);
+        var logPre = document.getElementById('log-pre-' + logIndex);
+
+        if (logContent.style.display === 'none' || logContent.style.display === '') {
+            logPre.innerHTML = 'Cargando...';
+            logContent.style.display = 'block';
+            fetchLogContent(logIndex, logName, formToken);
+        } else {
+            logContent.style.display = 'none';
+        }
+    }
+
+    function fetchLogContent(logIndex, logName, formToken) {
+        var xhr = new XMLHttpRequest();
+        var url = '{{ fsc.url() }}';
+
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var logPre = document.getElementById('log-pre-' + logIndex);
+                if (xhr.status === 200) {
+                    logPre.innerHTML = xhr.responseText;
+                } else {
+                    logPre.innerHTML = '<span class="text-danger">Error al cargar el log.</span>';
+                    console.error('Error al cargar el log. Estado: ' + xhr.status + ', Respuesta: ' + xhr.responseText);
+                }
+            }
+        };
+        
+        var data = 'action=ver-log-ajax&logName=' + encodeURIComponent(logName) + '&form_token=' + encodeURIComponent(formToken);
+        xhr.send(data);
+    }
+
+    function closeLogContent(logIndex) {
+        var logContent = document.getElementById('log-content-' + logIndex);
+        logContent.style.display = 'none';
+    }
+</script>
+
+{% endblock %}
