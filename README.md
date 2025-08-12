@@ -2,8 +2,13 @@
 
 Optimiza imágenes de MyFiles y guarda logs por fecha en FacturaScripts.
 
-realizado el 05-08-2025
-v1.1 el 06-08-2025 arreglado
+V1.2 
+Se optimiza para evitar que si la imagen existe y se indica no redimensionar, mantenga el tamaño actual y optimice la imagen, si el resultado es igualo mayor peso,
+no hace nada, si reduce el peso la optimiza.
+Se evita que se generen imágenes a tamaño menor del indicado y calcula correctamente la dimensión si es horizontal o vertical.
+
+
+v1.1 
 
 
 Compatibilidad de Rutas: Uso de DIRECTORY_SEPARATOR para Windows y Linux.
